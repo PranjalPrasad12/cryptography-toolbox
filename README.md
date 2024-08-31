@@ -48,9 +48,3 @@ To install and run the toolbox, follow these steps:
    brew install python3 gcc clang openssl
    ```
 
-
-### Build Instructions
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/iron-vault.git
-   cd iron-vault
