@@ -1,5 +1,7 @@
-/*  Cryptography Toolbox- A simple toolbox for managing various encryptions
+/*
+    Cryptography Toolbox- A simple toolbox for managing various encryptions
     Copyright (C) Pranjal Prasad 2023-2024
+
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -13,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -23,10 +26,9 @@ void display_warranty();
 void display_license();
 void display_help();
 void about();
-void encrypt_data(const char *encryption_type, const char *input, const char *key, const char *output_file, const char *key_file);
+void encrypt_data(const char *encryption_type, const char *input, const char *key, const char *output_file);
 void decrypt_data(const char *encryption_type, const char *input_file, const char *key_file, const char *output_file);
 char *get_path_from_mc();
-void call_python_encryption(const char* encryption_type, const char* input, const char* key);
 
 // Constants
 #define BUFFER_SIZE 256
@@ -37,12 +39,13 @@ int main(int argc, char *argv[]) {
     if (argc == 1) {
         printf("Cryptography Toolbox- A simple toolbox for managing various encryptions\n");
         printf("Copyright (C) 2023-2024 Pranjal Prasad\n");
-        printf("This program comes with ABSOLUTELY NO WARRANTY; for details type with '-w'.\n");
-        printf("This is free software, and you are welcome to redistribute it under certain conditions; type with '-c' for details.\n");
-        printf("To see the options, type with '-help'.\n");
+        printf("This program comes with ABSOLUTELY NO WARRANTY; for details type '-w'.\n");
+        printf("This is free software; you are welcome to redistribute it under certain conditions; type '-c' for details.\n");
+        printf("For options, type '-help'.\n");
         return 0;
     }
 
+    // Handle command line options
     if (strcmp(argv[1], "-w") == 0) {
         display_warranty();
     } else if (strcmp(argv[1], "-c") == 0) {
@@ -53,9 +56,9 @@ int main(int argc, char *argv[]) {
         about();
     } else if (strcmp(argv[1], "encrypt") == 0 && argc >= 5) {
         char *output_file = (argc == 6) ? argv[5] : DEFAULT_OUTPUT_FILE;
-        char *key_file = (strstr(argv[4], "@m-commander") != NULL) ? get_path_from_mc() : argv[4];
-        encrypt_data(argv[2], argv[3], key_file, output_file, key_file);
-        if (strstr(argv[4], "@m-commander") != NULL) free(key_file); // Free the allocated memory if using Midnight Commander
+        char *key_file = strstr(argv[4], "@m-commander") ? get_path_from_mc() : argv[4];
+        encrypt_data(argv[2], argv[3], key_file, output_file);
+        if (strstr(argv[4], "@m-commander")) free(key_file);  // Free memory if allocated for MC path
     } else if (strcmp(argv[1], "decrypt") == 0 && argc == 5) {
         decrypt_data(argv[2], argv[3], argv[4], argv[5]);
     } else {
@@ -64,6 +67,7 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
 // Display warranty information
 void display_warranty() {
     printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
@@ -84,74 +88,61 @@ void display_license() {
         printf("%s", line);
     }
     fclose(license_file);
-
-    printf("\nPress 'q' to exit: ");
-    while (getchar() != 'q'); // Wait for user to press 'q'
 }
 
 // Display help information
 void display_help() {
     printf("Usage: crypto-toolbox [OPTION] [ARGUMENTS...]\n");
     printf("Options:\n");
-    printf("  -w, --warranty       Show warranty details\n");
-    printf("  -c, --license        Show license conditions\n");
-    printf("  -help                Show this help message\n");
-    printf("  -about               Show information about the program\n");
-    printf("  encrypt [type] [input] [key] [output_file]  Encrypt input and store output and key in specified file paths\n");
-    printf("  decrypt [type] [input_file] [key_file] [output_file]  Decrypt input using key stored in key file and store result in output file\n");
+    printf("  -w                Show warranty details\n");
+    printf("  -c                Show license conditions\n");
+    printf("  -help             Show this help message\n");
+    printf("  -about            Show information about the program\n");
+    printf("  encrypt [type] [input] [key] [output_file]  Encrypt input with specified key and output file\n");
+    printf("  decrypt [type] [input_file] [key_file] [output_file]  Decrypt input using key and save to output file\n");
     printf("Encryption types: AES, DES, RSA, etc.\n");
 }
 
-// Display information about the program
+// Display program information
 void about() {
     printf("Cryptography Toolbox\n");
-    printf("Version Alpha Build 1.97\n 31 August 2024 17:18 UTC/22:48 IST");
+    printf("Version Alpha Build 1.97\n");
     printf("Developed by Pranjal Prasad\n");
-    printf("This is the first published to Github, it may not be 100 percent great\n");
-    printf("This is free software, and you are welcome to redistribute it under certain conditions. For more information, see the LICENSE file.\n");
+    printf("This is free software. For more information, see the LICENSE file.\n");
 }
 
 // Get path from Midnight Commander
 char *get_path_from_mc() {
     printf("Launching Midnight Commander...\n");
-    system("mc");
-    printf("Enter the path you selected: ");
+    system("mc");  // Launch Midnight Commander
+    printf("Enter the selected path: ");
     char *path = malloc(BUFFER_SIZE);
-    if (path == NULL) {
+    if (!path) {
         perror("Memory allocation error");
         exit(EXIT_FAILURE);
     }
     fgets(path, BUFFER_SIZE, stdin);
-    path[strcspn(path, "\n")] = '\0'; 
+    path[strcspn(path, "\n")] = '\0';  // Remove newline character
     return path;
 }
 
-// Encrypt data using Python script
-void encrypt_data(const char *encryption_type, const char *input, const char *key, const char *output_file, const char *key_file) {
+// Encrypt data
+void encrypt_data(const char *encryption_type, const char *input, const char *key, const char *output_file) {
     printf("Encrypting data...\n");
-
-    FILE *key_fp = fopen(key_file, "w");
-    if (key_fp == NULL) {
-        perror("Error opening key file");
-        return;
-    }
-    fprintf(key_fp, "%s", key);
-    fclose(key_fp);
 
     char command[512];
     snprintf(command, sizeof(command), "python3 cli.py encrypt %s \"%s\" \"%s\" > %s", encryption_type, input, key, output_file);
     system(command);
 
     printf("Data encrypted and saved to %s\n", output_file);
-    printf("Key saved to %s\n", key_file);
 }
 
-// Decrypt data using Python script
+// Decrypt data
 void decrypt_data(const char *encryption_type, const char *input_file, const char *key_file, const char *output_file) {
     printf("Decrypting data...\n");
 
     char command[512];
-    snprintf(command, sizeof(command), "python3 encryptor.py decrypt %s %s %s > %s", encryption_type, input_file, key_file, output_file);
+    snprintf(command, sizeof(command), "python3 cli.py decrypt %s %s %s > %s", encryption_type, input_file, key_file, output_file);
     system(command);
 
     printf("Data decrypted and saved to %s\n", output_file);
