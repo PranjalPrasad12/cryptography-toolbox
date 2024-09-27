@@ -1,5 +1,5 @@
 /*
-    Cryptography Toolbox- A simple toolbox for managing various encryptions
+    Cryptography Toolbox- A simple toolbox for managing various encryptions and key management
     Copyright (C) Pranjal Prasad 2023-2024
 
     This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "Features/key-management.h" // Ensure correct path to your header file
 
 // Function prototypes
 void display_warranty();
@@ -30,14 +31,24 @@ void encrypt_data(const char *encryption_type, const char *input, const char *ke
 void decrypt_data(const char *encryption_type, const char *input_file, const char *key_file, const char *output_file);
 char *get_path_from_mc();
 
+// Key management function prototypes
+
+void view_keys();
+void delete_key(const char *key_file);
+void save_keys_in_format(const char *format); // Added prototype
+
 // Constants
 #define BUFFER_SIZE 256
 #define DEFAULT_OUTPUT_FILE "./output_encrypted.txt"
+#define KEY_STORE "key_store.txt"
+// Constants
+#define BUFFER_SIZE 1024 // Make sure this matches with your header file
+
 
 // Main function
 int main(int argc, char *argv[]) {
     if (argc == 1) {
-        printf("Cryptography Toolbox- A simple toolbox for managing various encryptions\n");
+        printf("Cryptography Toolbox- A simple toolbox for managing various encryptions and key management\n");
         printf("Copyright (C) 2023-2024 Pranjal Prasad\n");
         printf("This program comes with ABSOLUTELY NO WARRANTY; for details type '-w'.\n");
         printf("This is free software; you are welcome to redistribute it under certain conditions; type '-c' for details.\n");
@@ -46,26 +57,22 @@ int main(int argc, char *argv[]) {
     }
 
     // Handle command line options
-    if (strcmp(argv[1], "-w") == 0) {
-        display_warranty();
-    } else if (strcmp(argv[1], "-c") == 0) {
-        display_license();
-    } else if (strcmp(argv[1], "-help") == 0) {
-        display_help();
-    } else if (strcmp(argv[1], "-about") == 0) {
-        about();
-    } else if (strcmp(argv[1], "encrypt") == 0 && argc >= 5) {
-        char *output_file = (argc == 6) ? argv[5] : DEFAULT_OUTPUT_FILE;
-        char *key_file = strstr(argv[4], "@m-commander") ? get_path_from_mc() : argv[4];
-        encrypt_data(argv[2], argv[3], key_file, output_file);
-        if (strstr(argv[4], "@m-commander")) free(key_file);  // Free memory if allocated for MC path
-    } else if (strcmp(argv[1], "decrypt") == 0 && argc == 5) {
-        decrypt_data(argv[2], argv[3], argv[4], argv[5]);
-    } else {
-        printf("Invalid option. Type '-help' for usage.\n");
-    }
+  if (argc < 2) {
+    printf("No command provided. Type '-help' for usage.\n");
+    return 1; // Exit with error
+}
 
-    return 0;
+if (strcmp(argv[1], "encrypt") == 0 && argc >= 5) {
+    char *output_file = (argc == 6) ? argv[5] : DEFAULT_OUTPUT_FILE;
+    char *key_file = strstr(argv[4], "@m-commander") ? get_path_from_mc() : argv[4];
+    encrypt_data(argv[2], argv[3], key_file, output_file);
+    if (strstr(argv[4], "@m-commander")) free(key_file);  // Free memory if allocated for MC path
+} else if (strcmp(argv[1], "decrypt") == 0 && argc == 6) {
+    decrypt_data(argv[2], argv[3], argv[4], argv[5]);
+} else {
+    printf("Invalid option. Type '-help' for usage.\n");
+}
+
 }
 
 // Display warranty information
@@ -100,6 +107,9 @@ void display_help() {
     printf("  -about            Show information about the program\n");
     printf("  encrypt [type] [input] [key] [output_file]  Encrypt input with specified key and output file\n");
     printf("  decrypt [type] [input_file] [key_file] [output_file]  Decrypt input using key and save to output file\n");
+    printf("  generate-key [type] [key_file]  Generate a new key of the specified type and save it to the key file\n");
+    printf("  view-keys         View all keys in the key store\n");
+    printf("  delete-key [key_file]  Delete the specified key from the key store\n");
     printf("Encryption types: AES, DES, RSA, etc.\n");
 }
 
