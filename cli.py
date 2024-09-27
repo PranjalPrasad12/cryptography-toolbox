@@ -149,7 +149,7 @@ def main():
                 print(f"Unsupported encryption type: {encryption_type}")
 
         else:
-            print(f"Unsupported action: {action}")
+            print(f"Unsupported action: {action} Refer to the help option by adding '-help  ' ")
 
     except Exception as e:
         print(f"Operation failed: {e}")
