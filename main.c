@@ -116,7 +116,7 @@ void display_help() {
 // Display program information
 void about() {
     printf("Cryptography Toolbox\n");
-    printf("Version Alpha Build 1.97\n");
+    printf("Version Alpha Build 1.98.1\n");
     printf("Developed by Pranjal Prasad\n");
     printf("This is free software. For more information, see the LICENSE file.\n");
 }
@@ -157,3 +157,4 @@ void decrypt_data(const char *encryption_type, const char *input_file, const cha
 
     printf("Data decrypted and saved to %s\n", output_file);
 }
+ 
