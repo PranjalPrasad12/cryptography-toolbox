@@ -35,8 +35,7 @@ def decrypt_des(encrypted_data, key):
     iv = encrypted_data[:DES3.block_size]
     ciphertext = encrypted_data[DES3.block_size:]
     cipher = DES3.new(key, DES3.MODE_CBC, iv=iv)
-    padded_text = cipher.decrypt(ciphertext)
-    return unpad(padded_text, DES3.block_size).decode('utf-8')
+    return unpad(cipher.decrypt(ciphertext), DES3.block_size).decode('utf-8')
 
 # ChaCha20 encryption and decryption
 def encrypt_chacha20(input_text, key):
@@ -51,8 +50,7 @@ def decrypt_chacha20(encrypted_data, key):
     nonce = encrypted_data[:8]  # ChaCha20 nonce is 8 bytes
     ciphertext = encrypted_data[8:]
     cipher = ChaCha20.new(key=key, nonce=nonce)
-    decrypted_text = cipher.decrypt(ciphertext)
-    return decrypted_text.decode('utf-8')
+    return cipher.decrypt(ciphertext).decode('utf-8')
 
 # Blowfish encryption and decryption
 def encrypt_blowfish(input_text, key):
@@ -68,8 +66,7 @@ def decrypt_blowfish(encrypted_data, key):
     iv = encrypted_data[:Blowfish.block_size]
     ciphertext = encrypted_data[Blowfish.block_size:]
     cipher = Blowfish.new(key, Blowfish.MODE_CBC, iv=iv)
-    padded_text = cipher.decrypt(ciphertext)
-    return unpad(padded_text, Blowfish.block_size).decode('utf-8')
+    return unpad(cipher.decrypt(ciphertext), Blowfish.block_size).decode('utf-8')
 
 # Salsa20 encryption and decryption
 def encrypt_salsa20(input_text, key):
@@ -84,12 +81,18 @@ def decrypt_salsa20(encrypted_data, key):
     nonce = encrypted_data[:8]  # Salsa20 nonce is 8 bytes
     ciphertext = encrypted_data[8:]
     cipher = Salsa20.new(key=key, nonce=nonce)
-    decrypted_text = cipher.decrypt(ciphertext)
-    return decrypted_text.decode('utf-8')
+    return cipher.decrypt(ciphertext).decode('utf-8')
+
+# Hashing functions
+def hash_sha256(input_text):
+    return hashlib.sha256(input_text.encode()).hexdigest()
+
+def hash_md5(input_text):
+    return hashlib.md5(input_text.encode()).hexdigest()
 
 def main():
-    if len(sys.argv) != 5:
-        print("Usage: python3 encryptor.py [encrypt/decrypt] [aes/des/chacha20/blowfish/salsa20] [input_text/encrypted_data] [key]")
+    if len(sys.argv) < 5:
+        print("Usage: python3 encryptor.py [encrypt/decrypt/hash] [aes/des/chacha20/blowfish/salsa20] [input_text/encrypted_data] [key]")
         return
 
     action = sys.argv[1].lower()
@@ -148,8 +151,20 @@ def main():
             else:
                 print(f"Unsupported encryption type: {encryption_type}")
 
+        elif action == "hash":
+            if encryption_type == "sha256":
+                hashed_value = hash_sha256(input_text)
+                print(f"SHA-256 hash: {hashed_value}")
+
+            elif encryption_type == "md5":
+                hashed_value = hash_md5(input_text)
+                print(f"MD5 hash: {hashed_value}")
+
+            else:
+                print(f"Unsupported hashing type: {encryption_type}")
+
         else:
-            print(f"Unsupported action: {action} Refer to the help option by adding '-help  ' ")
+            print(f"Unsupported action: {action}")
 
     except Exception as e:
         print(f"Operation failed: {e}")
