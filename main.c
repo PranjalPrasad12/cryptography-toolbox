@@ -3,8 +3,7 @@
     Copyright (C) Pranjal Prasad 2023-2024
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -20,8 +19,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "Features/key-management.h" // Ensure correct path to your header file
-
+#include <openssl/sha.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
 // Function prototypes
 void display_warranty();
 void display_license();
@@ -29,21 +29,14 @@ void display_help();
 void about();
 void encrypt_data(const char *encryption_type, const char *input, const char *key, const char *output_file);
 void decrypt_data(const char *encryption_type, const char *input_file, const char *key_file, const char *output_file);
+void hash_data(const char *input, char *output_buffer);
+void generate_rsa_keypair(const char *public_key_file, const char *private_key_file);
 char *get_path_from_mc();
-
-// Key management function prototypes
-
-void view_keys();
-void delete_key(const char *key_file);
-void save_keys_in_format(const char *format); // Added prototype
 
 // Constants
 #define BUFFER_SIZE 256
 #define DEFAULT_OUTPUT_FILE "./output_encrypted.txt"
 #define KEY_STORE "key_store.txt"
-// Constants
-#define BUFFER_SIZE 1024 // Make sure this matches with your header file
-
 
 // Main function
 int main(int argc, char *argv[]) {
@@ -57,28 +50,71 @@ int main(int argc, char *argv[]) {
     }
 
     // Handle command line options
-  if (argc < 2) {
-    printf("No command provided. Type '-help' for usage.\n");
-    return 1; // Exit with error
+    if (strcmp(argv[1], "hash") == 0 && argc == 3) {
+        char output_buffer[SHA256_DIGEST_LENGTH * 2 + 1];  // +1 for null terminator
+        hash_data(argv[2], output_buffer);
+        printf("SHA-256 Hash: %s\n", output_buffer);
+    } 
+    else if (strcmp(argv[1], "generate-key") == 0 && argc == 4) {
+        generate_rsa_keypair(argv[2], argv[3]);
+    } 
+    else if (strcmp(argv[1], "encrypt") == 0 && argc >= 5) {
+        char *output_file = (argc == 6) ? argv[5] : DEFAULT_OUTPUT_FILE;
+        char *key_file = strstr(argv[4], "@m-commander") ? get_path_from_mc() : argv[4];
+        encrypt_data(argv[2], argv[3], key_file, output_file);
+        if (strstr(argv[4], "@m-commander")) free(key_file);
+    } 
+    else if (strcmp(argv[1], "decrypt") == 0 && argc == 6) {
+        decrypt_data(argv[2], argv[3], argv[4], argv[5]);
+    } 
+    else {
+        printf("Invalid option. Type '-help' for usage.\n");
+    }
+
+    return 0;
 }
 
-if (strcmp(argv[1], "encrypt") == 0 && argc >= 5) {
-    char *output_file = (argc == 6) ? argv[5] : DEFAULT_OUTPUT_FILE;
-    char *key_file = strstr(argv[4], "@m-commander") ? get_path_from_mc() : argv[4];
-    encrypt_data(argv[2], argv[3], key_file, output_file);
-    if (strstr(argv[4], "@m-commander")) free(key_file);  // Free memory if allocated for MC path
-} else if (strcmp(argv[1], "decrypt") == 0 && argc == 6) {
-    decrypt_data(argv[2], argv[3], argv[4], argv[5]);
-} else {
-    printf("Invalid option. Type '-help' for usage.\n");
+// Hash data using SHA-256
+void hash_data(const char *input, char *output_buffer) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256((unsigned char *)input, strlen(input), hash);
+
+    // Convert hash to a hex string
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+        sprintf(output_buffer + (i * 2), "%02x", hash[i]);
+    }
+    output_buffer[SHA256_DIGEST_LENGTH * 2] = '\0';  // Null-terminate the string
 }
 
+// Generate RSA keys
+void generate_rsa_keypair(const char *public_key_file, const char *private_key_file) {
+    RSA *rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+
+    // Save private key
+    FILE *private_key_fp = fopen(private_key_file, "wb");
+    if (private_key_fp) {
+        PEM_write_RSAPrivateKey(private_key_fp, rsa, NULL, NULL, 0, NULL, NULL);
+        fclose(private_key_fp);
+    } else {
+        perror("Unable to open private key file");
+    }
+
+    // Save public key
+    FILE *public_key_fp = fopen(public_key_file, "wb");
+    if (public_key_fp) {
+        PEM_write_RSAPublicKey(public_key_fp, rsa);
+        fclose(public_key_fp);
+    } else {
+        perror("Unable to open public key file");
+    }
+
+    RSA_free(rsa); // Free the RSA key
+    printf("RSA key pair generated: %s (public), %s (private)\n", public_key_file, private_key_file);
 }
 
 // Display warranty information
 void display_warranty() {
     printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
-    printf("For details, see the LICENSE file or visit https://www.gnu.org/licenses/gpl-3.0.en.html.\n");
 }
 
 // Display license information
@@ -107,7 +143,8 @@ void display_help() {
     printf("  -about            Show information about the program\n");
     printf("  encrypt [type] [input] [key] [output_file]  Encrypt input with specified key and output file\n");
     printf("  decrypt [type] [input_file] [key_file] [output_file]  Decrypt input using key and save to output file\n");
-    printf("  generate-key [type] [key_file]  Generate a new key of the specified type and save it to the key file\n");
+    printf("  hash [input]      Compute the SHA-256 hash of the input\n");
+    printf("  generate-key [public_key_file] [private_key_file]  Generate RSA key pair\n");
     printf("  view-keys         View all keys in the key store\n");
     printf("  delete-key [key_file]  Delete the specified key from the key store\n");
     printf("Encryption types: AES, DES, RSA, etc.\n");
@@ -136,25 +173,15 @@ char *get_path_from_mc() {
     return path;
 }
 
-// Encrypt data
+// Encrypt data (assuming this function is defined somewhere)
 void encrypt_data(const char *encryption_type, const char *input, const char *key, const char *output_file) {
     printf("Encrypting data...\n");
-
-    char command[512];
-    snprintf(command, sizeof(command), "python3 cli.py encrypt %s \"%s\" \"%s\" > %s", encryption_type, input, key, output_file);
-    system(command);
-
-    printf("Data encrypted and saved to %s\n", output_file);
+   
 }
 
-// Decrypt data
+// Decrypt data (assuming this function is defined somewhere)
 void decrypt_data(const char *encryption_type, const char *input_file, const char *key_file, const char *output_file) {
     printf("Decrypting data...\n");
-
-    char command[512];
-    snprintf(command, sizeof(command), "python3 cli.py decrypt %s %s %s > %s", encryption_type, input_file, key_file, output_file);
-    system(command);
-
-    printf("Data decrypted and saved to %s\n", output_file);
+    
 }
- 
+      
