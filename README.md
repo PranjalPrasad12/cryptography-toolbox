@@ -1,5 +1,6 @@
 # Cryptography Toolbox
 ## Overview
+This repo is no longer maintained 
 Cryptography Toolbox is a simple CLI-based cryptography toolbox built using C and Python. It provides various encryption and decryption functionalities for secure data handling.
 
 ## Features
